@@ -55,19 +55,17 @@ def find_matches(html, check_list):
     return _matched_list
 
 
-def check_page_authorlinks(page_title, wp_authors):
+def check_page_authorlinks(page_object, wp_authors):
     """
     Returns potential missing author links
     for a given WP page title using a list of authors
     """
 
-    page = wp.page(page_title)
-
-    no_links = strip_links(page.html())
+    no_links = strip_links(page_object.html())
     list_matches = find_matches(no_links, wp_authors)
 
-    title = page.title
-    url = page.url
+    title = page_object.title
+    url = page_object.url
     match_count = len(list_matches)
     missing_authors = ", ".join(list_matches)
 
@@ -77,17 +75,16 @@ def check_page_authorlinks(page_title, wp_authors):
         return None
 
 
-def crawl_child_authorlinks(seed_page_title, wp_authors):
+def crawl_child_authorlinks(seed_page_object, wp_authors):
     """
     check pages for missing authorlinks including the seed page
     and all linked pages n levels_deep
     """
 
-    seed_page = wp.page(seed_page_title)
-
     _result_list = []
-    for i in seed_page.links:
-        _result = check_page_authorlinks(i, wp_authors)
+    for i in seed_page_object.links:
+        i_object, q_num = get_page_data(i)
+        _result = check_page_authorlinks(i_object, wp_authors)
         if _result is not None:
             _result_list.append(_result_list)
 
