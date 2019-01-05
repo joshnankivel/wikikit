@@ -1,11 +1,26 @@
 import wikipedia as wp
 import re
+from bs4 import BeautifulSoup
+import requests
 
+
+def get_page_data(page_title):
+
+    page = wp.page(page_title)
+
+    url = page.url
+    content = requests.get(url).content
+    soup = BeautifulSoup(content, 'lxml')
+
+    q_number = soup.find('li', {'id': 't-wikibase'}).a['href'].rsplit('/')[-1]
+
+    return page, q_number
 
 def get_authors(category_list):
     """
     Return a list of all Wikipedia pages within a list of categories
     """
+
     _list = []
     for i in category_list:
         _list.extend(wp.search("incategory:\"{}\"".format(i), results=1000))
@@ -18,6 +33,7 @@ def strip_links(html):
     """
     Strip all links and related text out of an html string
     """
+
     list_nolinks = re.split('<a|<\/a>', html)
     list_nolinks = [x for x in list_nolinks if 'href=' not in x]
     str_nolinks = "".join(list_nolinks)
@@ -28,6 +44,7 @@ def find_matches(html, check_list):
     """
     Return a list of potential authorlinks that should be added
     """
+
     _matched_list = []
     for i in check_list:
         try:
@@ -43,6 +60,7 @@ def check_page_authorlinks(page_title, wp_authors):
     Returns potential missing author links
     for a given WP page title using a list of authors
     """
+
     page = wp.page(page_title)
 
     no_links = strip_links(page.html())
@@ -64,7 +82,6 @@ def crawl_child_authorlinks(seed_page_title, wp_authors):
     check pages for missing authorlinks including the seed page
     and all linked pages n levels_deep
     """
-
 
     seed_page = wp.page(seed_page_title)
 
