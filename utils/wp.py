@@ -82,10 +82,13 @@ def crawl_child_authorlinks(seed_page_object, wp_authors):
     """
 
     _result_list = []
+    print("Checking {} child pages.".format(len(seed_page_object.links)))
     for i in seed_page_object.links:
         i_object, q_num = get_page_data(i)
+        print("Checking page {}".format(i_object.title))
         _result = check_page_authorlinks(i_object, wp_authors)
         if _result is not None:
+            print("Found possible missing authorlink on page {}".format(i.title))
             _result_list.append(_result_list)
 
     return _result_list
