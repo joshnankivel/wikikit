@@ -1,6 +1,7 @@
 import wikipedia as wp
 import re
 
+
 def get_authors(category_list):
     """
     Return a list of all Wikipedia pages within a list of categories
@@ -37,16 +38,40 @@ def find_matches(html, check_list):
     return _matched_list
 
 
-def check_page(page_title, wp_authors):
+def check_page_authorlinks(page_title, wp_authors):
     """
     Returns potential missing author links
     for a given WP page title using a list of authors
     """
-    page_title = "Expanding Earth"
     page = wp.page(page_title)
 
     no_links = strip_links(page.html())
     list_matches = find_matches(no_links, wp_authors)
 
-    print("For page '{p}' at {u} there is a potential missing authorlink for {a}".format(p=page.title, u=page.url,
-                                                                                         a=",".join(list_matches)))
+    title = page.title
+    url = page.url
+    match_count = len(list_matches)
+    missing_authors = ", ".join(list_matches)
+
+    if match_count > 0:
+        return title, url, match_count, missing_authors
+    else:
+        return None
+
+
+def crawl_child_authorlinks(seed_page_title, wp_authors):
+    """
+    check pages for missing authorlinks including the seed page
+    and all linked pages n levels_deep
+    """
+
+
+    seed_page = wp.page(seed_page_title)
+
+    _result_list = []
+    for i in seed_page.links:
+        _result = check_page_authorlinks(i, wp_authors)
+        if _result is not None:
+            _result_list.append(_result_list)
+
+    return _result_list
