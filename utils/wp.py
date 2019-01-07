@@ -1,20 +1,38 @@
 import wikipedia as wp
+from wikidata.client import Client
 import re
 from bs4 import BeautifulSoup
 import requests
 
+def get_wikidata_desc(q_number):
+
+    client = Client()
+    try:
+        entity = client.get(q_number, load=True)
+        _result = entity.description
+    except:
+        _result = None
+
+    return _result
+
 
 def get_page_data(page_title):
 
-    page = wp.page(page_title)
+    try:
+        page = wp.page(page_title)
 
-    url = page.url
-    content = requests.get(url).content
-    soup = BeautifulSoup(content, 'lxml')
+        url = page.url
+        content = requests.get(url).content
+        soup = BeautifulSoup(content, 'lxml')
+        try:
+            q_number = soup.find('li', {'id': 't-wikibase'}).a['href'].rsplit('/')[-1]
+        except:
+            q_number = None
 
-    q_number = soup.find('li', {'id': 't-wikibase'}).a['href'].rsplit('/')[-1]
+        return page, q_number
 
-    return page, q_number
+    except:
+        pass
 
 def get_authors(category_list):
     """
@@ -70,7 +88,7 @@ def check_page_authorlinks(page_object, wp_authors):
     missing_authors = ", ".join(list_matches)
 
     if match_count > 0:
-        return title, url, match_count, missing_authors
+        return [title, url, match_count, missing_authors]
     else:
         return None
 
@@ -82,13 +100,36 @@ def crawl_child_authorlinks(seed_page_object, wp_authors):
     """
 
     _result_list = []
-    print("Checking {} child pages.".format(len(seed_page_object.links)))
-    for i in seed_page_object.links:
+    _links = sorted(list(set(seed_page_object.links)))
+    print("Checking {} child pages.".format(len(_links)))
+    for i in _links:
         i_object, q_num = get_page_data(i)
-        print("Checking page {}".format(i_object.title))
-        _result = check_page_authorlinks(i_object, wp_authors)
-        if _result is not None:
-            print("Found possible missing authorlink on page {}".format(i.title))
-            _result_list.append(_result_list)
+        try:
+            _missing = check_page_authorlinks(i_object, wp_authors)
+            _result_list.append(_missing)
+        except:
+            pass
 
+    return _result_list
+
+def crawl_child_descriptions(seed_page_object):
+    """
+    start with a seed page and crawl all child pages to fetch
+    their descriptions on wikidata, which is used as a short description
+    in mobile search results on wikipedia
+    """
+
+    _result_list = []
+    _links = sorted(list(set(seed_page_object.links)))
+    print("Checking {} child pages.".format(len(_links)))
+    for i in _links:
+        try:
+            i_object, q_num = get_page_data(i)
+            wikidata_desc = get_wikidata_desc(q_num)
+            wikidata_page = "https://www.wikidata.org/wiki/{}".format(q_num)
+            print("{}: {}".format(i_object.title, wikidata_desc))
+            _result_list.append([i_object.title, i_object.url, wikidata_desc, wikidata_page])
+        except:
+            pass
+        
     return _result_list
